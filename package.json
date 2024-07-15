@@ -23,7 +23,7 @@
         "url": "git+ssh://git@github.com/amiruldev/baileys-firebase.git"
     },
     "dependencies": {
-        "libsignal": "github:adiwajshing/libsignal-node",
+        "libsignal": "github:amiruldev20/signal-node",
         "firebase-admin": "latest"
     },
     "devDependencies": {
