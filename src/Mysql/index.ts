@@ -26,9 +26,9 @@ export const useSqlAuthState = async (config: {
     const connection = await mysql.createConnection({ host, user, password, database });
 
     const table = tableName ?? 'amiruldev_auth';
-    const sessionName = session ?? `session_${Date.now()}`;
+    const sessionName = session ?? `session_`;
 
-    // logic auto create table
+    // Create table if not exists
     await connection.execute(`
         CREATE TABLE IF NOT EXISTS \`${table}\` (
             id VARCHAR(255) PRIMARY KEY,
@@ -36,14 +36,15 @@ export const useSqlAuthState = async (config: {
             session VARCHAR(255)
         )
     `);
-    
+
+    // Ensure creds entry
     const ensureSession = async () => {
-        const [rows]: any = await connection.execute(`SELECT DISTINCT session FROM \`${table}\``);
+        const [rows]: any = await connection.execute(`SELECT * FROM \`${table}\` WHERE id = 'creds'`);
         if (rows.length === 0) {
-            await connection.execute(`INSERT INTO \`${table}\` (id, session) VALUES ('creds', ?)`, [sessionName]);
+            await connection.execute(`INSERT INTO \`${table}\` (id, value, session) VALUES ('creds', ?, ?)`, [JSON.stringify(initAuthCreds(), BufferJSON.replacer), sessionName]);
         }
     };
-    
+
     await ensureSession();
 
     const query = async (tableName: string, docId: string): Promise<mysqlData | null> => {
@@ -51,12 +52,12 @@ export const useSqlAuthState = async (config: {
         return rows.length > 0 ? rows[0] : null;
     };
 
-    const readData = async (id: string) => {
+    const readData = async (id: string): Promise<any> => {
         const data = await query(table, id);
         if (!data || !data.value) {
             return null;
         }
-        const creds = typeof data.value === 'object' ? JSON.stringify(data.value) : data.value;
+        const creds = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
         return JSON.parse(creds, BufferJSON.reviver);
     };
 
