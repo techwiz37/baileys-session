@@ -9,6 +9,7 @@ multi session baileys created on external databases
 - MongoDB ✅ [CLICK HERE](https://github.com/amiruldev20/baileys-session/tree/mongodb)
 - MySQL ✅ [CLICK HERE](https://github.com/amiruldev20/baileys-session/tree/mysql)
 - Postgree ⏱️
+- Sqlite
 
 # Thanks To
 <table>
