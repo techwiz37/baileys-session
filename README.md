@@ -40,7 +40,7 @@ const { useFireAuthState } = require("session")
 
 // next code (support all)
 const { state, saveCreds, clear, removeCreds, query } =
-    await useFireAuthState("urlmongo", {})
+    await useFireAuthState({})
 ```
 
 **Note:**
