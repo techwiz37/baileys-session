@@ -20,7 +20,7 @@ export const useSqlAuthState = async (mysqlURI: string, config: mysqlConfig): Pr
     const session = config.session ?? 'amiruldev_waAuth';
 
     const query = async (tableName: string, docId: string): Promise<mysqlData | null> => {
-        const [rows]: [mysqlData[], mysql.FieldPacket[]] = await connection.execute(`SELECT * FROM ?? WHERE id = ?`, [`${session}-${tableName}`, docId]);
+        const [rows]: any = await connection.execute(`SELECT * FROM ?? WHERE id = ?`, [`${session}-${tableName}`, docId]);
         return rows.length > 0 ? rows[0] : null;
     };
 
