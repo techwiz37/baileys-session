@@ -29,7 +29,7 @@ export const useSqlAuthState = async (config: {
     const sessionName = session ?? 'amiruldev_waAuth';
 
     const query = async (tableName: string, docId: string): Promise<mysqlData | null> => {
-        const [rows]: any = await connection.execute(`SELECT * FROM ?? WHERE id = ?`, [`${sessionName}-${tableName}`, docId]);
+        const [rows]: any = await connection.execute(`SELECT * FROM \`${tableName}\` WHERE id = ?`, [`${sessionName}-${docId}`]);
         return rows.length > 0 ? rows[0] : null;
     };
 
@@ -45,21 +45,21 @@ export const useSqlAuthState = async (config: {
     const writeData = async (id: string, value: object) => {
         const valueFixed = JSON.stringify(value, BufferJSON.replacer);
         await connection.execute(
-            `INSERT INTO ?? (id, value, session) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)`,
-            [`${sessionName}-${table}`, id, valueFixed, sessionName]
+            `INSERT INTO \`${table}\` (id, value, session) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+            [`${sessionName}-${id}`, valueFixed, sessionName]
         );
     };
 
     const removeData = async (id: string) => {
-        await connection.execute(`DELETE FROM ?? WHERE id = ?`, [`${sessionName}-${table}`, id]);
+        await connection.execute(`DELETE FROM \`${table}\` WHERE id = ?`, [`${sessionName}-${id}`]);
     };
 
     const clearAll = async () => {
-        await connection.execute(`DELETE FROM ?? WHERE session = ? AND id != 'creds'`, [`${sessionName}-${table}`, sessionName]);
+        await connection.execute(`DELETE FROM \`${table}\` WHERE session = ? AND id != 'creds'`, [sessionName]);
     };
 
     const removeAll = async () => {
-        await connection.execute(`DELETE FROM ?? WHERE session = ?`, [`${sessionName}-${table}`, sessionName]);
+        await connection.execute(`DELETE FROM \`${table}\` WHERE session = ?`, [sessionName]);
     };
 
     const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds();
