@@ -8,24 +8,33 @@ import {
     SignalDataTypeMap
 } from '../Types';
 
-export const useSqlAuthState = async (mysqlURI: string, config: mysqlConfig): Promise<{
+export const useSqlAuthState = async (config: {
+    host: string,
+    user: string,
+    password: string,
+    database: string,
+    tableName?: string,
+    session?: string
+}): Promise<{
     state: AuthenticationState;
     saveCreds: () => Promise<void>;
     clear: () => Promise<void>;
     removeCreds: () => Promise<void>;
     query: (tableName: string, docId: string) => Promise<mysqlData | null>;
 }> => {
-    const connection = await mysql.createConnection(mysqlURI);
-    const tableName = config.tableName ?? 'amiruldev_auth';
-    const session = config.session ?? 'amiruldev_waAuth';
+    const { host, user, password, database, tableName, session } = config;
+    const connection = await mysql.createConnection({ host, user, password, database });
+
+    const table = tableName ?? 'amiruldev_auth';
+    const sessionName = session ?? 'amiruldev_waAuth';
 
     const query = async (tableName: string, docId: string): Promise<mysqlData | null> => {
-        const [rows]: any = await connection.execute(`SELECT * FROM ?? WHERE id = ?`, [`${session}-${tableName}`, docId]);
+        const [rows]: any = await connection.execute(`SELECT * FROM ?? WHERE id = ?`, [`${sessionName}-${tableName}`, docId]);
         return rows.length > 0 ? rows[0] : null;
     };
 
     const readData = async (id: string) => {
-        const data = await query(tableName, id);
+        const data = await query(table, id);
         if (!data || !data.value) {
             return null;
         }
@@ -37,20 +46,20 @@ export const useSqlAuthState = async (mysqlURI: string, config: mysqlConfig): Pr
         const valueFixed = JSON.stringify(value, BufferJSON.replacer);
         await connection.execute(
             `INSERT INTO ?? (id, value, session) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)`,
-            [`${session}-${tableName}`, id, valueFixed, session]
+            [`${sessionName}-${table}`, id, valueFixed, sessionName]
         );
     };
 
     const removeData = async (id: string) => {
-        await connection.execute(`DELETE FROM ?? WHERE id = ?`, [`${session}-${tableName}`, id]);
+        await connection.execute(`DELETE FROM ?? WHERE id = ?`, [`${sessionName}-${table}`, id]);
     };
 
     const clearAll = async () => {
-        await connection.execute(`DELETE FROM ?? WHERE session = ? AND id != 'creds'`, [`${session}-${tableName}`, session]);
+        await connection.execute(`DELETE FROM ?? WHERE session = ? AND id != 'creds'`, [`${sessionName}-${table}`, sessionName]);
     };
 
     const removeAll = async () => {
-        await connection.execute(`DELETE FROM ?? WHERE session = ?`, [`${session}-${tableName}`, session]);
+        await connection.execute(`DELETE FROM ?? WHERE session = ?`, [`${sessionName}-${table}`, sessionName]);
     };
 
     const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds();

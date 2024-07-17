@@ -39,8 +39,15 @@ import { useSqlAuthState } from "session"
 const { useSqlAuthState } = require("session")
 
 // next code (support all)
-const mysqlURI = 'mysql://user:password@host:port/databasename';
-const { state, saveCreds, clear, removeCreds, query } = await useSqlAuthState(mysqlURI, {})
+const config = {
+        host: 'host',
+        user: 'user',
+        password: 'password',
+        database: 'dbname'
+    };
+
+    const { state, saveCreds, clear, removeCreds, query } = await useSqlAuthState(config);
+
 ```
 
 **Note:**
