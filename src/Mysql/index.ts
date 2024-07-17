@@ -13,18 +13,15 @@ export const useSqlAuthState = async (mysqlURI: string, config: mysqlConfig): Pr
     saveCreds: () => Promise<void>;
     clear: () => Promise<void>;
     removeCreds: () => Promise<void>;
-    query: (table: string, docId: string) => Promise<mysqlData | null>;
+    query: (tableName: string, docId: string) => Promise<mysqlData | null>;
 }> => {
     const connection = await mysql.createConnection(mysqlURI);
     const tableName = config.tableName ?? 'amiruldev_auth';
     const session = config.session ?? 'amiruldev_waAuth';
 
-    const query = async (table: string, docId: string): Promise<mysqlData | null> => {
-        const [rows] = await connection.execute('SELECT * FROM ?? WHERE id = ?', [`${session}_${table}`, docId]);
-        if (rows.length === 0) {
-            return null;
-        }
-        return rows[0] as mysqlData;
+    const query = async (tableName: string, docId: string): Promise<mysqlData | null> => {
+        const [rows] = await connection.execute<mysqlData[]>(`SELECT * FROM ?? WHERE id = ?`, [`${session}-${tableName}`, docId]);
+        return rows.length > 0 ? rows[0] : null;
     };
 
     const readData = async (id: string) => {
@@ -32,30 +29,28 @@ export const useSqlAuthState = async (mysqlURI: string, config: mysqlConfig): Pr
         if (!data || !data.value) {
             return null;
         }
-        const creds = typeof data.value === 'object'
-            ? JSON.stringify(data.value)
-            : data.value;
+        const creds = typeof data.value === 'object' ? JSON.stringify(data.value) : data.value;
         return JSON.parse(creds, BufferJSON.reviver);
     };
 
     const writeData = async (id: string, value: object) => {
         const valueFixed = JSON.stringify(value, BufferJSON.replacer);
         await connection.execute(
-            'INSERT INTO ?? (id, value, session) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = ?, session = ?',
-            [`${session}_${tableName}`, id, valueFixed, session, valueFixed, session]
+            `INSERT INTO ?? (id, value, session) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+            [`${session}-${tableName}`, id, valueFixed, session]
         );
     };
 
     const removeData = async (id: string) => {
-        await connection.execute('DELETE FROM ?? WHERE id = ?', [`${session}_${tableName}`, id]);
+        await connection.execute(`DELETE FROM ?? WHERE id = ?`, [`${session}-${tableName}`, id]);
     };
 
     const clearAll = async () => {
-        await connection.execute('DELETE FROM ?? WHERE session = ? AND id != "creds"', [`${session}_${tableName}`, session]);
+        await connection.execute(`DELETE FROM ?? WHERE session = ? AND id != 'creds'`, [`${session}-${tableName}`, session]);
     };
 
     const removeAll = async () => {
-        await connection.execute('DELETE FROM ?? WHERE session = ?', [`${session}_${tableName}`, session]);
+        await connection.execute(`DELETE FROM ?? WHERE session = ?`, [`${session}-${tableName}`, session]);
     };
 
     const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds();
@@ -101,8 +96,8 @@ export const useSqlAuthState = async (mysqlURI: string, config: mysqlConfig): Pr
         removeCreds: async () => {
             await removeAll();
         },
-        query: async (table: string, docId: string) => {
-            return await query(table, docId);
+        query: async (tableName: string, docId: string) => {
+            return await query(tableName, docId);
         }
     };
 };
