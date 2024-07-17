@@ -1,19 +1,54 @@
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#table-of-contents)
-# Baileys Session (External)
-multi session baileys created on external databases
+# Baileys Session (Mysql)
+> multi session baileys created on mysql databases
 
 [JOIN GROUP](https://chat.whatsapp.com/JbzMsezhCwUKdC6dnjwcIz)
 
-# Database Provider
-- Firebase ✅ [CLICK HERE](https://github.com/amiruldev20/baileys-session/tree/firebase)
-- MongoDB ✅ [CLICK HERE](https://github.com/amiruldev20/baileys-session/tree/mongodb)
-- MySQL ⏱️
-- Postgree ⏱️
+## how to use ?
+> First, you need to add the session package in package.json. You can use the github or npm version
 
-# Thanks To
-<table>
-  <tr>
-    <td align="center"><a href="https://github.com/amiruldev20"><img src="https://github.com/amiruldev20.png?size=100" width="100px;" alt=""/><br /><sub><b>Amirul Dev</b></sub></a><br /><sub><i>Author of baileys session & firebase</i></sub></td>
-    <td align="center"><a href="https://github.com/itscherly"><img src="https://github.com/itscherly.png?size=100" width="100px;" alt=""/><br /><sub><b>Sherly</b></sub></a><br /><sub><i>Creator mongodb session</i></sub></td>
-  </tr>
-</table>
+**version github**
+```json
+"session": "github.com/amiruldev20/baileys-session#mysql"
+```
+
+**version npm**
+```json
+"session": "npm:baileys-mysql"
+```
+
+```json
+{
+    "name": "myproject",
+    "version": "1.0.1",
+    "author": "sanzydev",
+    "dependencies": {
+        "session": "github:amiruldev20/baileys-session#mysql"
+        // and other your depen
+    }
+}
+```
+
+> Second step, please call the useMongoAuthState function on your client. Example code is below
+
+```javascript
+// for esm import
+import { useSqlAuthState } from "session"
+
+// for cjs import
+const { useSqlAuthState } = require("session")
+
+// next code (support all)
+const config = {
+        host: 'host',
+        user: 'user',
+        password: 'password',
+        database: 'dbname'
+    };
+
+    const { state, saveCreds, clear, removeCreds, query } = await useSqlAuthState(config);
+
+```
+
+**Note:**
+> If there are bugs, please report & open an issue in the main repo.
