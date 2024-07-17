@@ -26,7 +26,25 @@ export const useSqlAuthState = async (config: {
     const connection = await mysql.createConnection({ host, user, password, database });
 
     const table = tableName ?? 'amiruldev_auth';
-    const sessionName = session ?? 'amiruldev_waAuth';
+    const sessionName = session ?? `session_${Date.now()}`;
+
+    // logic auto create table
+    await connection.execute(`
+        CREATE TABLE IF NOT EXISTS \`${table}\` (
+            id VARCHAR(255) PRIMARY KEY,
+            value JSON,
+            session VARCHAR(255)
+        )
+    `);
+    
+    const ensureSession = async () => {
+        const [rows]: any = await connection.execute(`SELECT DISTINCT session FROM \`${table}\``);
+        if (rows.length === 0) {
+            await connection.execute(`INSERT INTO \`${table}\` (id, session) VALUES ('creds', ?)`, [sessionName]);
+        }
+    };
+    
+    await ensureSession();
 
     const query = async (tableName: string, docId: string): Promise<mysqlData | null> => {
         const [rows]: any = await connection.execute(`SELECT * FROM \`${tableName}\` WHERE id = ?`, [`${sessionName}-${docId}`]);
