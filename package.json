@@ -1,6 +1,6 @@
 {
     "name": "baileys-mysql",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "author": "sanzydev",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -45,16 +45,11 @@
         "lib": "lib"
     },
     "keywords": [
-        "baileys",
-        "session",
-        "mongodb",
-        "session",
-        "amirul",
-        "dev",
-        "itscherly",
-        "baileys",
-        "external",
-        "session"
+        "baileys session",
+        "baileys sql",
+        "session external",
+        "amirul dev",
+        "sanzy dev"
     ],
     "bugs": {
         "url": "https://github.com/amiruldev/baileys-session/issues"
