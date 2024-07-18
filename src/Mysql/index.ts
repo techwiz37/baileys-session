@@ -28,14 +28,23 @@ export const useSqlAuthState = async (config: {
     const table = tableName ?? 'amiruldev_auth';
     const sessionName = session ?? `session_`;
 
-    // Create table if not exists
+    // Create table if not exists with timestamp column
     await connection.execute(`
         CREATE TABLE IF NOT EXISTS \`${table}\` (
             id VARCHAR(255) PRIMARY KEY,
             value JSON,
-            session VARCHAR(255)
+            session VARCHAR(255),
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     `);
+
+    // Function to delete sessions older than 1 day
+    const deleteOldSessions = async () => {
+        await connection.execute(`
+            DELETE FROM \`${table}\` 
+            WHERE session = ? AND timestamp < NOW() - INTERVAL 1 DAY
+        `, [sessionName]);
+    };
 
     // Ensure creds entry
     const ensureSession = async () => {
@@ -46,7 +55,7 @@ export const useSqlAuthState = async (config: {
     };
 
     await ensureSession();
-
+    await deleteOldSessions();
     const query = async (tableName: string, docId: string): Promise<mysqlData | null> => {
         const [rows]: any = await connection.execute(`SELECT * FROM \`${tableName}\` WHERE id = ?`, [`${sessionName}-${docId}`]);
         return rows.length > 0 ? rows[0] : null;
@@ -64,7 +73,7 @@ export const useSqlAuthState = async (config: {
     const writeData = async (id: string, value: object) => {
         const valueFixed = JSON.stringify(value, BufferJSON.replacer);
         await connection.execute(
-            `INSERT INTO \`${table}\` (id, value, session) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+            `INSERT INTO \`${table}\` (id, value, session) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), timestamp = CURRENT_TIMESTAMP`,
             [`${sessionName}-${id}`, valueFixed, sessionName]
         );
     };
