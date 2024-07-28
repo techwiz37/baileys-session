@@ -12,12 +12,15 @@ const sessionSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     value: mongoose.Schema.Types.Mixed,
     session: { type: String, required: true },
-    createdAt: { type: Date, expires: '5m', default: Date.now } // TTL index
+    createdAt: { type: Date, expires: "1h", default: Date.now } // TTL INDEX
 });
 
 const Session = mongoose.model<mongoData>("Session", sessionSchema);
 
-export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): Promise<{
+export const useMongoAuthState = async (
+    mongoURI: string,
+    config: mongoConfig
+): Promise<{
     state: AuthenticationState;
     saveCreds: () => Promise<void>;
     clear: () => Promise<void>;
@@ -27,8 +30,11 @@ export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): 
     await mongoose.connect(mongoURI);
     const collectionName = config.tableName ?? "amiruldev-auth";
     const session = config.session ?? "amiruldev-waAuth";
-    
-    const query = async (collection: string, docId: string): Promise<mongoData | null> => {
+
+    const query = async (
+        collection: string,
+        docId: string
+    ): Promise<mongoData | null> => {
         const doc = await Session.findById(`${session}-${docId}`);
         return doc ? (doc.toObject() as mongoData) : null;
     };
@@ -38,9 +44,10 @@ export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): 
         if (!data || !data.value) {
             return null;
         }
-        const creds = typeof data.value === "object"
-            ? JSON.stringify(data.value)
-            : data.value;
+        const creds =
+            typeof data.value === "object"
+                ? JSON.stringify(data.value)
+                : data.value;
         return JSON.parse(creds, BufferJSON.reviver);
     };
 
@@ -48,7 +55,7 @@ export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): 
         const valueFixed = JSON.stringify(value, BufferJSON.replacer);
         await Session.updateOne(
             { _id: `${session}-${id}` },
-            { value: valueFixed, session, createdAt: new Date() }, // set createdAt to current time
+            { value: valueFixed, session, createdAt: new Date() },
             { upsert: true }
         );
     };
@@ -56,16 +63,13 @@ export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): 
     const removeData = async (id: string) => {
         await Session.deleteOne({ _id: `${session}-${id}` });
     };
-
-    const clearAll = async () => {
-        await Session.deleteMany({ session, _id: { $ne: "creds" } });
-    };
-
+    
     const removeAll = async () => {
         await Session.deleteMany({ session });
     };
 
-    const creds: AuthenticationCreds = (await readData("creds")) || initAuthCreds();
+    const creds: AuthenticationCreds =
+        (await readData("creds")) || initAuthCreds();
 
     return {
         state: {
@@ -101,9 +105,6 @@ export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): 
         },
         saveCreds: async () => {
             await writeData("creds", creds);
-        },
-        clear: async () => {
-            await clearAll();
         },
         removeCreds: async () => {
             await removeAll();
