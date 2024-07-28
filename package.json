@@ -1,6 +1,6 @@
 {
     "name": "baileys-mongodb",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "author": "Amirul Dev",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
