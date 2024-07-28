@@ -11,7 +11,8 @@ import {
 const sessionSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     value: mongoose.Schema.Types.Mixed,
-    session: { type: String, required: true }
+    session: { type: String, required: true },
+    createdAt: { type: Date, expires: '5m', default: Date.now } // TTL index
 });
 
 const Session = mongoose.model<mongoData>("Session", sessionSchema);
@@ -47,7 +48,7 @@ export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): 
         const valueFixed = JSON.stringify(value, BufferJSON.replacer);
         await Session.updateOne(
             { _id: `${session}-${id}` },
-            { value: valueFixed, session },
+            { value: valueFixed, session, createdAt: new Date() }, // set createdAt to current time
             { upsert: true }
         );
     };
