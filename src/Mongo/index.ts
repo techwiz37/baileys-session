@@ -6,7 +6,7 @@ import {
     SignalDataTypeMap
 } from "../Types";
 import { initAuthCreds } from "./auth-utils";
-
+import * as bail from "baileys"
 const fileLock = new AsyncLock({ maxPending: Infinity });
 
 const BufferJSON = {
@@ -101,7 +101,7 @@ export const useMongoAuthState = async (
                             let value = await readData(`${type}-${id}.json`);
                             if (type === "app-state-sync-key" && value) {
                                 value =
-                                    proto.Message.AppStateSyncKeyData.fromObject(
+                                    bail.proto.Message.AppStateSyncKeyData.fromObject(
                                         value
                                     );
                             }
