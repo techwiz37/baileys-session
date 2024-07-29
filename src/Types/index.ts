@@ -110,7 +110,7 @@ export type SignalDataTypeMap = {
     session: Uint8Array;
     "sender-key": Uint8Array;
     "sender-key-memory": { [jid: string]: boolean };
-    "app-state-sync-key": proto.Message.IAppStateSyncKeyData;
+    "app-state-sync-key": AppDataSync;
     "app-state-sync-version": LTHashState;
 };
 
@@ -172,7 +172,7 @@ export type AuthenticationCreds = SignalCreds & {
     lastAccountSyncTimestamp?: number;
     platform?: string;
 
-    processedHistoryMessages: MinimalMessage[];
+    processedHistoryMessages: Pick<any, "key" | "messageTimestamp">[];
     /** number of times history & app state has been synced */
     accountSyncCounter: number;
     accountSettings: AccountSettings;
