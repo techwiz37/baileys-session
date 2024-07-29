@@ -106,14 +106,12 @@ export type AppDataSync = {
 };
 
 export type SignalDataTypeMap = {
-    session: Uint8Array;
     "pre-key": KeyPair;
+    session: Uint8Array;
     "sender-key": Uint8Array;
-    "app-state-sync-key": AppDataSync;
+    "sender-key-memory": { [jid: string]: boolean };
+    "app-state-sync-key": proto.Message.IAppStateSyncKeyData;
     "app-state-sync-version": LTHashState;
-    "sender-key-memory": {
-        [jid: string]: boolean;
-    };
 };
 
 export type SignalDataSet = {
