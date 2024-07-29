@@ -49,7 +49,8 @@ const Session = mongoose.model("Session", sessionSchema);
 export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
-    await mongoose.connect(mongoURI);
+    await mongoose.connect(mongoURI, {
+    });
 
     const writeData = (data: any, file: string) => {
         const id = file.replace(/\//g, "__").replace(/:/g, "-");
@@ -72,6 +73,7 @@ export const useMongoAuthState = async (
                 ? JSON.parse(JSON.stringify(doc.value), BufferJSON.reviver)
                 : null;
         } catch (error) {
+            console.error(`Error reading data from ${file}:`, error);
             return null;
         }
     };
@@ -82,7 +84,9 @@ export const useMongoAuthState = async (
             await fileLock.acquire(id, () =>
                 Session.deleteOne({ _id: id }).exec()
             );
-        } catch {}
+        } catch (error) {
+            console.error(`Error removing data for ${file}:`, error);
+        }
     };
 
     const creds: AuthenticationCreds =
@@ -101,6 +105,9 @@ export const useMongoAuthState = async (
                             let value = await readData(`${type}-${id}`);
                             if (type === "app-state-sync-key" && value) {
                                 value = fromObject(value);
+                            }
+                            if (typeof value === "string") {
+                                value = Buffer.from(value, "base64");
                             }
                             data[id] = value;
                         })
