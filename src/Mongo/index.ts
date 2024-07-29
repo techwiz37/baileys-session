@@ -7,22 +7,19 @@ import {
 } from "../Types";
 import { fromObject } from "../Utils";
 import { initAuthCreds } from "./auth-utils";
-
 const fileLock = new AsyncLock({ maxPending: Infinity });
 
 const BufferJSON = {
-    replacer: (k, value: any) => {
-        if (Buffer.isBuffer(value) || value instanceof Uint8Array) {
-            return {
-                type: "Buffer",
-                data: value.toString("base64")
-            };
-        }
-        return value;
-    },
     reviver: (_, value: any) => {
-        if (typeof value === "object" && value !== null && value.type === "Buffer") {
-            return Buffer.from(value.data, "base64");
+        if (
+            typeof value === "object" &&
+            !!value &&
+            (value.buffer === true || value.type === "Buffer")
+        ) {
+            const val = value.data || value.value;
+            return typeof val === "string"
+                ? Buffer.from(val, "base64")
+                : Buffer.from(val || []);
         }
         return value;
     }
@@ -40,15 +37,15 @@ export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
     await mongoose.connect(mongoURI, {
+        
     });
 
     const writeData = (data: any, file: string) => {
         const id = file.replace(/\//g, "__").replace(/:/g, "-");
-        const serializedData = JSON.stringify(data, BufferJSON.replacer);
         return fileLock.acquire(id, () =>
             Session.updateOne(
                 { _id: id },
-                { value: serializedData, createdAt: new Date() },
+                { value: data, createdAt: new Date() },
                 { upsert: true }
             )
         );
@@ -60,9 +57,7 @@ export const useMongoAuthState = async (
             const doc = await fileLock.acquire(id, () =>
                 Session.findById(id).exec()
             );
-            return doc
-                ? JSON.parse(doc.value, BufferJSON.reviver)
-                : null;
+            return doc ? doc.value : null;
         } catch (error) {
             console.error(`Error reading data from ${file}:`, error);
             return null;
@@ -96,6 +91,9 @@ export const useMongoAuthState = async (
                             let value = await readData(`${type}-${id}`);
                             if (type === "app-state-sync-key" && value) {
                                 value = fromObject(value);
+                            }
+                            if (value && typeof value === 'string') {
+                                value = Buffer.from(value, 'base64');
                             }
                             data[id] = value;
                         })
