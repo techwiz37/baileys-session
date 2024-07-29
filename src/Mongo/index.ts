@@ -50,6 +50,8 @@ export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
     await mongoose.connect(mongoURI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
     });
 
     const writeData = (data: any, file: string) => {
@@ -106,7 +108,7 @@ export const useMongoAuthState = async (
                             if (type === "app-state-sync-key" && value) {
                                 value = fromObject(value);
                             }
-                            if (typeof value === "string") {
+                            if (value && typeof value === "string") {
                                 value = Buffer.from(value, "base64");
                             }
                             data[id] = value;
