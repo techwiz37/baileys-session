@@ -18,26 +18,43 @@ const sessionSchema = new mongoose.Schema({
 
 const Session = mongoose.model("Session", sessionSchema);
 
-const convertToBuffer = (value: any): Buffer | null => {
-    if (value && typeof value === 'string' && value.startsWith('Buffer:')) {
-        const base64 = value.replace('Buffer:', '');
-        return Buffer.from(base64, 'base64');
+// Helper to serialize Buffer to a base64 string
+const serialize = (data: any): any => {
+    if (Buffer.isBuffer(data)) {
+        return `Buffer:${data.toString('base64')}`;
+    } else if (Array.isArray(data)) {
+        return data.map(item => serialize(item));
+    } else if (typeof data === 'object' && data !== null) {
+        const result: any = {};
+        for (const [key, value] of Object.entries(data)) {
+            result[key] = serialize(value);
+        }
+        return result;
     }
-    return null;
+    return data;
 };
 
-const convertFromBuffer = (value: any): any => {
-    if (Buffer.isBuffer(value)) {
-        return `Buffer:${value.toString('base64')}`;
+// Helper to deserialize base64 string to Buffer
+const deserialize = (data: any): any => {
+    if (typeof data === 'string' && data.startsWith('Buffer:')) {
+        return Buffer.from(data.slice(7), 'base64');
+    } else if (Array.isArray(data)) {
+        return data.map(item => deserialize(item));
+    } else if (typeof data === 'object' && data !== null) {
+        const result: any = {};
+        for (const [key, value] of Object.entries(data)) {
+            result[key] = deserialize(value);
+        }
+        return result;
     }
-    return value;
+    return data;
 };
 
 export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
     await mongoose.connect(mongoURI, {
-        
+      
     });
 
     const writeData = (data: any, file: string) => {
@@ -45,7 +62,7 @@ export const useMongoAuthState = async (
         return fileLock.acquire(id, () =>
             Session.updateOne(
                 { _id: id },
-                { value: data, createdAt: new Date() },
+                { value: serialize(data), createdAt: new Date() },
                 { upsert: true }
             )
         );
@@ -57,12 +74,7 @@ export const useMongoAuthState = async (
             const doc = await fileLock.acquire(id, () =>
                 Session.findById(id).exec()
             );
-            if (doc) {
-                let value = doc.value;
-                // Convert any base64 string back to Buffer
-                return convertToBuffer(value) || value;
-            }
-            return null;
+            return doc ? deserialize(doc.value) : null;
         } catch (error) {
             console.error(`Error reading data from ${file}:`, error);
             return null;
@@ -110,7 +122,7 @@ export const useMongoAuthState = async (
                             const file = `${category}-${id}`;
                             tasks.push(
                                 value
-                                    ? writeData(convertFromBuffer(value), file)
+                                    ? writeData(value, file)
                                     : removeData(file)
                             );
                         }
@@ -120,7 +132,7 @@ export const useMongoAuthState = async (
             }
         },
         saveCreds: () => {
-            return writeData(convertFromBuffer(creds), "creds");
+            return writeData(creds, "creds");
         }
     };
 };
