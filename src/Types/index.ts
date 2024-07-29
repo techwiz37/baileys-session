@@ -163,7 +163,7 @@ export type AuthenticationCreds = SignalCreds & {
     advSecretKey: string;
 
     me?: Contact;
-    account?: proto.IADVSignedDeviceIdentity;
+    account?: Account;
     signalIdentities?: SignalIdentity[];
     myAppStateKeyId?: string;
     firstUnuploadedPreKeyId: number;
