@@ -1,73 +1,87 @@
 import mongoose from "mongoose";
-import { BufferJSON, fromObject } from "../Utils";
-import { initAuthCreds } from "./auth-utils"
+import AsyncLock from "async-lock";
 import {
-    mongoConfig,
-    mongoData,
     AuthenticationCreds,
     AuthenticationState,
     SignalDataTypeMap
 } from "../Types";
+import { fromObject } from "../Utils";
+import { initAuthCreds } from "./auth-utils";
+
+const fileLock = new AsyncLock({ maxPending: Infinity });
+
+const BufferJSON = {
+    replacer: (k, value: any) => {
+        if (Buffer.isBuffer(value) || value instanceof Uint8Array) {
+            return {
+                type: "Buffer",
+                data: value.toString("base64")
+            };
+        }
+        return value;
+    },
+    reviver: (_, value: any) => {
+        if (typeof value === "object" && value !== null && value.type === "Buffer") {
+            return Buffer.from(value.data, "base64");
+        }
+        return value;
+    }
+};
 
 const sessionSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     value: mongoose.Schema.Types.Mixed,
-    session: { type: String, required: true }
+    createdAt: { type: Date, expires: "5m", default: Date.now } // TTL index 5 minutes
 });
 
-const Session = mongoose.model<mongoData>("Session", sessionSchema);
+const Session = mongoose.model("Session", sessionSchema);
 
-export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): Promise<{
-    state: AuthenticationState;
-    saveCreds: () => Promise<void>;
-    clear: () => Promise<void>;
-    removeCreds: () => Promise<void>;
-    query: (collection: string, docId: string) => Promise<mongoData | null>;
-}> => {
+export const useMongoAuthState = async (
+    mongoURI: string
+): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
     await mongoose.connect(mongoURI, {
     });
 
-    const collectionName = config.tableName ?? "amiruldev-auth";
-    const session = config.session ?? "amiruldev-waAuth";
-
-    const query = async (collection: string, docId: string): Promise<mongoData | null> => {
-        const doc = await Session.findById(`${session}-${docId}`);
-        return doc ? (doc.toObject() as mongoData) : null;
-    };
-
-    const readData = async (id: string) => {
-        const data = await query(collectionName, id);
-        if (!data || !data.value) {
-            return null;
-        }
-        const creds = typeof data.value === "object"
-            ? JSON.stringify(data.value)
-            : data.value;
-        return JSON.parse(creds, BufferJSON.reviver);
-    };
-
-    const writeData = async (id: string, value: object) => {
-        const valueFixed = JSON.stringify(value, BufferJSON.replacer);
-        await Session.updateOne(
-            { _id: `${session}-${id}` },
-            { value: valueFixed, session },
-            { upsert: true }
+    const writeData = (data: any, file: string) => {
+        const id = file.replace(/\//g, "__").replace(/:/g, "-");
+        const serializedData = JSON.stringify(data, BufferJSON.replacer);
+        return fileLock.acquire(id, () =>
+            Session.updateOne(
+                { _id: id },
+                { value: serializedData, createdAt: new Date() },
+                { upsert: true }
+            )
         );
     };
 
-    const removeData = async (id: string) => {
-        await Session.deleteOne({ _id: `${session}-${id}` });
+    const readData = async (file: string) => {
+        try {
+            const id = file.replace(/\//g, "__").replace(/:/g, "-");
+            const doc = await fileLock.acquire(id, () =>
+                Session.findById(id).exec()
+            );
+            return doc
+                ? JSON.parse(doc.value, BufferJSON.reviver)
+                : null;
+        } catch (error) {
+            console.error(`Error reading data from ${file}:`, error);
+            return null;
+        }
     };
 
-    const clearAll = async () => {
-        await Session.deleteMany({ session, _id: { $ne: "creds" } });
+    const removeData = async (file: string) => {
+        try {
+            const id = file.replace(/\//g, "__").replace(/:/g, "-");
+            await fileLock.acquire(id, () =>
+                Session.deleteOne({ _id: id }).exec()
+            );
+        } catch (error) {
+            console.error(`Error removing data for ${file}:`, error);
+        }
     };
 
-    const removeAll = async () => {
-        await Session.deleteMany({ session });
-    };
-
-    const creds: AuthenticationCreds = (await readData("creds")) || initAuthCreds();
+    const creds: AuthenticationCreds =
+        (await readData("creds")) || initAuthCreds();
 
     return {
         state: {
@@ -75,43 +89,38 @@ export const useMongoAuthState = async (mongoURI: string, config: mongoConfig): 
             keys: {
                 get: async (type, ids) => {
                     const data: {
-                        [id: string]: SignalDataTypeMap[typeof type];
+                        [_: string]: SignalDataTypeMap[typeof type];
                     } = {};
-                    for (const id of ids) {
-                        let value = await readData(`${type}-${id}`);
-                        if (type === "app-state-sync-key" && value) {
-                            value = fromObject(value);
-                        }
-                        data[id] = value;
-                    }
+                    await Promise.all(
+                        ids.map(async id => {
+                            let value = await readData(`${type}-${id}`);
+                            if (type === "app-state-sync-key" && value) {
+                                value = fromObject(value);
+                            }
+                            data[id] = value;
+                        })
+                    );
                     return data;
                 },
                 set: async data => {
+                    const tasks: Promise<void>[] = [];
                     for (const category in data) {
                         for (const id in data[category]) {
                             const value = data[category][id];
-                            const name = `${category}-${id}`;
-                            if (value) {
-                                await writeData(name, value);
-                            } else {
-                                await removeData(name);
-                            }
+                            const file = `${category}-${id}`;
+                            tasks.push(
+                                value
+                                    ? writeData(value, file)
+                                    : removeData(file)
+                            );
                         }
                     }
+                    await Promise.all(tasks);
                 }
             }
         },
-        saveCreds: async () => {
-            await writeData("creds", creds);
-        },
-        clear: async () => {
-            await clearAll();
-        },
-        removeCreds: async () => {
-            await removeAll();
-        },
-        query: async (collection: string, docId: string) => {
-            return await query(collection, docId);
+        saveCreds: () => {
+            return writeData(creds, "creds");
         }
     };
 };
