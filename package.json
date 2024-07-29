@@ -7,9 +7,7 @@
     "description": "mongodb external session for baileys",
     "homepage": "https://github.com/amiruldev20/baileys-session",
     "license": "MIT",
-    "files": [
-        "lib/*"
-    ],
+    "files": ["lib/*"],
     "scripts": {
         "release": "release-it",
         "build": "tsc",
@@ -25,6 +23,7 @@
         "url": "git+ssh://git@github.com/amiruldev/baileys-session.git"
     },
     "dependencies": {
+        "baileys": "github:amiruldev20/Baileys#beta",
         "libsignal": "github:amiruldev20/signal-node",
         "mongoose": "latest"
     },
