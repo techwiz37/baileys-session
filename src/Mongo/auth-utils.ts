@@ -1,8 +1,11 @@
-import type { AuthenticationCreds } from '../Types';
-import { Curve, signedKeyPair } from './crypto';
-import { generateRegistrationId } from './generics';
-import { randomBytes } from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
+import type { AuthenticationCreds } from "../Types";
+import { Curve, signedKeyPair } from "./crypto";
+import { randomBytes } from "crypto";
+import { v4 as uuidv4 } from "uuid";
+
+const generateRegistrationId = (): number => {
+    return Uint16Array.from(randomBytes(2))[0] & 16383;
+};
 
 export const initAuthCreds = (): AuthenticationCreds => {
     const identityKey = Curve.generateKeyPair();
@@ -12,7 +15,7 @@ export const initAuthCreds = (): AuthenticationCreds => {
         signedIdentityKey: identityKey,
         signedPreKey: signedKeyPair(identityKey, 1),
         registrationId: generateRegistrationId(),
-        advSecretKey: randomBytes(32).toString('base64'),
+        advSecretKey: randomBytes(32).toString("base64"),
         processedHistoryMessages: [],
         nextPreKeyId: 1,
         firstUnuploadedPreKeyId: 1,
@@ -21,7 +24,9 @@ export const initAuthCreds = (): AuthenticationCreds => {
             unarchiveChats: false
         },
         // mobile creds
-        deviceId: Buffer.from(uuidv4().replace(/-/g, ''), 'hex').toString('base64url'),
+        deviceId: Buffer.from(uuidv4().replace(/-/g, ""), "hex").toString(
+            "base64url"
+        ),
         phoneId: uuidv4(),
         identityId: randomBytes(20),
         registered: false,
@@ -29,6 +34,6 @@ export const initAuthCreds = (): AuthenticationCreds => {
         registration: {} as never,
         pairingCode: undefined,
         lastPropHash: undefined,
-        routingInfo: undefined,
+        routingInfo: undefined
     };
 };
