@@ -18,6 +18,21 @@ const sessionSchema = new mongoose.Schema({
 
 const Session = mongoose.model("Session", sessionSchema);
 
+const convertToBuffer = (value: any): Buffer | null => {
+    if (value && typeof value === 'string' && value.startsWith('Buffer:')) {
+        const base64 = value.replace('Buffer:', '');
+        return Buffer.from(base64, 'base64');
+    }
+    return null;
+};
+
+const convertFromBuffer = (value: any): any => {
+    if (Buffer.isBuffer(value)) {
+        return `Buffer:${value.toString('base64')}`;
+    }
+    return value;
+};
+
 export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
@@ -42,7 +57,12 @@ export const useMongoAuthState = async (
             const doc = await fileLock.acquire(id, () =>
                 Session.findById(id).exec()
             );
-            return doc ? doc.value : null;
+            if (doc) {
+                let value = doc.value;
+                // Convert any base64 string back to Buffer
+                return convertToBuffer(value) || value;
+            }
+            return null;
         } catch (error) {
             console.error(`Error reading data from ${file}:`, error);
             return null;
@@ -77,7 +97,6 @@ export const useMongoAuthState = async (
                             if (type === "app-state-sync-key" && value) {
                                 value = fromObject(value);
                             }
-                            // No need to convert Buffer or base64, just assign value directly
                             data[id] = value;
                         })
                     );
@@ -91,7 +110,7 @@ export const useMongoAuthState = async (
                             const file = `${category}-${id}`;
                             tasks.push(
                                 value
-                                    ? writeData(value, file)
+                                    ? writeData(convertFromBuffer(value), file)
                                     : removeData(file)
                             );
                         }
@@ -101,7 +120,7 @@ export const useMongoAuthState = async (
             }
         },
         saveCreds: () => {
-            return writeData(creds, "creds");
+            return writeData(convertFromBuffer(creds), "creds");
         }
     };
 };
