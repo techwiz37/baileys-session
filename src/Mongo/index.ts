@@ -13,7 +13,7 @@ const fileLock = new AsyncLock({ maxPending: Infinity });
 const sessionSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     value: mongoose.Schema.Types.Mixed,
-    createdAt: { type: Date, expires: "5m", default: Date.now } // TTL index 5 minutes
+    createdAt: { type: Date, expires: "1h", default: Date.now } // TTL index 1 hours
 });
 
 const Session = mongoose.model("Session", sessionSchema);
