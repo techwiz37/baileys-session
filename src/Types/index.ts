@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema } from "mongoose";
 
 type Awaitable<T> = T | Promise<T>;
 
@@ -52,11 +52,17 @@ export type SignalCreds = {
 
 export type AccountSettings = {
     unarchiveChats: boolean;
-    defaultDisappearingMode?: Pick<any, 'ephemeralExpiration' | 'ephemeralSettingTimestamp'>;
+    defaultDisappearingMode?: Pick<
+        any,
+        "ephemeralExpiration" | "ephemeralSettingTimestamp"
+    >;
 };
 
 export type SignalKeyStore = {
-    get<T extends keyof SignalDataTypeMap>(type: T, ids: string[]): Awaitable<{
+    get<T extends keyof SignalDataTypeMap>(
+        type: T,
+        ids: string[]
+    ): Awaitable<{
         [id: string]: SignalDataTypeMap[T];
     }>;
     set(data: SignalDataSet): Awaitable<void>;
@@ -69,7 +75,7 @@ export interface RegistrationOptions {
     phoneNumberNationalNumber: string;
     phoneNumberMobileCountryCode: string;
     phoneNumberMobileNetworkCode: string;
-    method?: 'sms' | 'voice' | 'captcha';
+    method?: "sms" | "voice" | "captcha";
     captcha?: string;
 }
 
@@ -101,11 +107,11 @@ export type AppDataSync = {
 
 export type SignalDataTypeMap = {
     session: Uint8Array;
-    'pre-key': KeyPair;
-    'sender-key': Uint8Array;
-    'app-state-sync-key': AppDataSync;
-    'app-state-sync-version': LTHashState;
-    'sender-key-memory': {
+    "pre-key": KeyPair;
+    "sender-key": Uint8Array;
+    "app-state-sync-key": AppDataSync;
+    "app-state-sync-version": LTHashState;
+    "sender-key-memory": {
         [jid: string]: boolean;
     };
 };
@@ -157,24 +163,29 @@ export type AuthenticationCreds = SignalCreds & {
     readonly noiseKey: KeyPair;
     readonly pairingEphemeralKeyPair: KeyPair;
     advSecretKey: string;
+
     me?: Contact;
-    account?: Account;
+    account?: proto.IADVSignedDeviceIdentity;
     signalIdentities?: SignalIdentity[];
     myAppStateKeyId?: string;
     firstUnuploadedPreKeyId: number;
     nextPreKeyId: number;
+
     lastAccountSyncTimestamp?: number;
     platform?: string;
-    processedHistoryMessages: Pick<any, 'key' | 'messageTimestamp'>[];
+
+    processedHistoryMessages: MinimalMessage[];
+    /** number of times history & app state has been synced */
     accountSyncCounter: number;
     accountSettings: AccountSettings;
+    // mobile creds
     deviceId: string;
     phoneId: string;
     identityId: Buffer;
     registered: boolean;
     backupToken: Buffer;
     registration: RegistrationOptions;
-    pairingCode?: string;
-    lastPropHash?: string;
-    routingInfo?: Buffer;
+    pairingCode: string | undefined;
+    lastPropHash: string | undefined;
+    routingInfo: Buffer | undefined;
 };
