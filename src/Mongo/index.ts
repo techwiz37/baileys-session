@@ -7,23 +7,8 @@ import {
 } from "../Types";
 import { fromObject } from "../Utils";
 import { initAuthCreds } from "./auth-utils";
-const fileLock = new AsyncLock({ maxPending: Infinity });
 
-const BufferJSON = {
-    reviver: (_, value: any) => {
-        if (
-            typeof value === "object" &&
-            !!value &&
-            (value.buffer === true || value.type === "Buffer")
-        ) {
-            const val = value.data || value.value;
-            return typeof val === "string"
-                ? Buffer.from(val, "base64")
-                : Buffer.from(val || []);
-        }
-        return value;
-    }
-};
+const fileLock = new AsyncLock({ maxPending: Infinity });
 
 const sessionSchema = new mongoose.Schema({
     _id: { type: String, required: true },
@@ -37,7 +22,8 @@ export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
     await mongoose.connect(mongoURI, {
-        
+        useNewUrlParser: true,
+        useUnifiedTopology: true
     });
 
     const writeData = (data: any, file: string) => {
@@ -92,9 +78,7 @@ export const useMongoAuthState = async (
                             if (type === "app-state-sync-key" && value) {
                                 value = fromObject(value);
                             }
-                            if (value && typeof value === 'string') {
-                                value = Buffer.from(value, 'base64');
-                            }
+                            // No need to convert Buffer or base64, just assign value directly
                             data[id] = value;
                         })
                     );
