@@ -13,7 +13,7 @@ const fileLock = new AsyncLock({ maxPending: Infinity });
 const sessionSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     value: mongoose.Schema.Types.Mixed,
-    createdAt: { type: Date, expires: "1h", default: Date.now } // TTL index 1 hours
+    createdAt: { type: Date, expires: "5h", default: Date.now } // TTL index 5 hour
 });
 
 const Session = mongoose.model("Session", sessionSchema);
@@ -21,10 +21,10 @@ const Session = mongoose.model("Session", sessionSchema);
 // Helper to serialize Buffer to a base64 string
 const serialize = (data: any): any => {
     if (Buffer.isBuffer(data)) {
-        return `Buffer:${data.toString('base64')}`;
+        return `Buffer:${data.toString("base64")}`;
     } else if (Array.isArray(data)) {
         return data.map(item => serialize(item));
-    } else if (typeof data === 'object' && data !== null) {
+    } else if (typeof data === "object" && data !== null) {
         const result: any = {};
         for (const [key, value] of Object.entries(data)) {
             result[key] = serialize(value);
@@ -36,11 +36,11 @@ const serialize = (data: any): any => {
 
 // Helper to deserialize base64 string to Buffer
 const deserialize = (data: any): any => {
-    if (typeof data === 'string' && data.startsWith('Buffer:')) {
-        return Buffer.from(data.slice(7), 'base64');
+    if (typeof data === "string" && data.startsWith("Buffer:")) {
+        return Buffer.from(data.slice(7), "base64");
     } else if (Array.isArray(data)) {
         return data.map(item => deserialize(item));
-    } else if (typeof data === 'object' && data !== null) {
+    } else if (typeof data === "object" && data !== null) {
         const result: any = {};
         for (const [key, value] of Object.entries(data)) {
             result[key] = deserialize(value);
@@ -50,31 +50,47 @@ const deserialize = (data: any): any => {
     return data;
 };
 
+let isConnected = false;
+
 export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
-    await mongoose.connect(mongoURI, {
-      
-    });
+    if (!isConnected) {
+        await mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+        isConnected = true;
+    }
 
-    const writeData = (data: any, file: string) => {
+    const cache = new Map();
+
+    const writeData = async (data: any, file: string) => {
         const id = file.replace(/\//g, "__").replace(/:/g, "-");
-        return fileLock.acquire(id, () =>
+        await fileLock.acquire(id, () =>
             Session.updateOne(
                 { _id: id },
                 { value: serialize(data), createdAt: new Date() },
                 { upsert: true }
-            )
+            ).exec()
         );
+        cache.set(id, data);
     };
 
     const readData = async (file: string) => {
+        const id = file.replace(/\//g, "__").replace(/:/g, "-");
+        if (cache.has(id)) {
+            return cache.get(id);
+        }
         try {
-            const id = file.replace(/\//g, "__").replace(/:/g, "-");
             const doc = await fileLock.acquire(id, () =>
                 Session.findById(id).exec()
             );
-            return doc ? deserialize(doc.value) : null;
+            const data = doc ? deserialize(doc.value) : null;
+            if (data) {
+                cache.set(id, data);
+            }
+            return data;
         } catch (error) {
             console.error(`Error reading data from ${file}:`, error);
             return null;
@@ -82,14 +98,9 @@ export const useMongoAuthState = async (
     };
 
     const removeData = async (file: string) => {
-        try {
-            const id = file.replace(/\//g, "__").replace(/:/g, "-");
-            await fileLock.acquire(id, () =>
-                Session.deleteOne({ _id: id }).exec()
-            );
-        } catch (error) {
-            console.error(`Error removing data for ${file}:`, error);
-        }
+        const id = file.replace(/\//g, "__").replace(/:/g, "-");
+        await fileLock.acquire(id, () => Session.deleteOne({ _id: id }).exec());
+        cache.delete(id);
     };
 
     const creds: AuthenticationCreds =
