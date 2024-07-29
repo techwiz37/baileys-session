@@ -23,7 +23,6 @@
         "url": "git+ssh://git@github.com/amiruldev/baileys-session.git"
     },
     "dependencies": {
-        "baileys": "github:amiruldev20/Baileys#beta",
         "libsignal": "github:amiruldev20/signal-node",
         "mongoose": "latest"
     },
