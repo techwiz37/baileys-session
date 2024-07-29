@@ -22,8 +22,7 @@ export const useMongoAuthState = async (
     mongoURI: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
     await mongoose.connect(mongoURI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
+        
     });
 
     const writeData = (data: any, file: string) => {
