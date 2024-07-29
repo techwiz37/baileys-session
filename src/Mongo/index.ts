@@ -5,8 +5,8 @@ import {
     AuthenticationState,
     SignalDataTypeMap
 } from "../Types";
+import { fromObject } from "../Utils";
 import { initAuthCreds } from "./auth-utils";
-import * as bail from "baileys"
 const fileLock = new AsyncLock({ maxPending: Infinity });
 
 const BufferJSON = {
@@ -86,7 +86,7 @@ export const useMongoAuthState = async (
     };
 
     const creds: AuthenticationCreds =
-        (await readData("creds.json")) || initAuthCreds();
+        (await readData("creds")) || initAuthCreds();
 
     return {
         state: {
@@ -98,12 +98,9 @@ export const useMongoAuthState = async (
                     } = {};
                     await Promise.all(
                         ids.map(async id => {
-                            let value = await readData(`${type}-${id}.json`);
+                            let value = await readData(`${type}-${id}`);
                             if (type === "app-state-sync-key" && value) {
-                                value =
-                                    bail.proto.Message.AppStateSyncKeyData.fromObject(
-                                        value
-                                    );
+                                value = fromObject(value);
                             }
                             data[id] = value;
                         })
@@ -115,7 +112,7 @@ export const useMongoAuthState = async (
                     for (const category in data) {
                         for (const id in data[category]) {
                             const value = data[category][id];
-                            const file = `${category}-${id}.json`;
+                            const file = `${category}-${id}`;
                             tasks.push(
                                 value
                                     ? writeData(value, file)
@@ -128,7 +125,7 @@ export const useMongoAuthState = async (
             }
         },
         saveCreds: () => {
-            return writeData(creds, "creds.json");
+            return writeData(creds, "creds");
         }
     };
 };
