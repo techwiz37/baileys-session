@@ -32,7 +32,6 @@
         "@types/uuid": "^9.0.8",
         "@typescript-eslint/eslint-plugin": "^6.18.0",
         "@typescript-eslint/parser": "^6.18.0",
-        "@amiruldev/baileys": "github:amiruldev20/Baileys",
         "eslint": "^8.56.0",
         "release-it": "^15.10.3",
         "typedoc": "^0.24.7",
@@ -43,17 +42,8 @@
         "lib": "lib"
     },
     "keywords": [
-        "baileys",
-        "session",
-        "mongodb",
-        "session",
-        "amirul",
-        "dev",
-        "itscherly",
-        "baileys",
-        "external",
-        "session"
-    ],
+"baileys session"
+    ]
     "bugs": {
         "url": "https://github.com/amiruldev/baileys-session/issues"
     }
