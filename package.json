@@ -26,7 +26,9 @@
     },
     "dependencies": {
         "libsignal": "github:amiruldev20/signal-node",
-        "mongoose": "latest"
+        "mongoose": "latest",
+        "futoin-hkdf": "^1.5.1",
+        "async-lock": "^1.4.1"
     },
     "devDependencies": {
         "@adiwajshing/eslint-config": "github:adiwajshing/eslint-config",
