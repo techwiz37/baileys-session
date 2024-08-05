@@ -7,7 +7,9 @@
     "description": "mongodb external session for baileys",
     "homepage": "https://github.com/amiruldev20/baileys-session",
     "license": "MIT",
-    "files": ["lib/*"],
+    "files": [
+        "lib/*"
+    ],
     "scripts": {
         "release": "release-it",
         "build": "tsc",
@@ -42,8 +44,8 @@
         "lib": "lib"
     },
     "keywords": [
-"baileys session"
-    ]
+        "baileys session"
+    ],
     "bugs": {
         "url": "https://github.com/amiruldev/baileys-session/issues"
     }
