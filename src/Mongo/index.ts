@@ -54,7 +54,7 @@ let isConnected = false;
 
 export const useMongoAuthState = async (
     mongoURI: string
-): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
+): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void>; clearAll: () => Promise<void>; clearKeys: () => Promise<void>; }> => {
     if (!isConnected) {
         await mongoose.connect(mongoURI, {});
         isConnected = true;
@@ -100,6 +100,20 @@ export const useMongoAuthState = async (
         cache.delete(id);
     };
 
+    const clearAll = async () => {
+        await Session.deleteMany({});
+        cache.clear();
+    };
+
+    const clearKeys = async () => {
+        const creds = await readData("creds");
+        await Session.deleteMany({ _id: { $ne: "creds" } });
+        cache.clear();
+        if (creds) {
+            cache.set("creds", creds);
+        }
+    };
+
     const creds: AuthenticationCreds =
         (await readData("creds")) || initAuthCreds();
 
@@ -135,12 +149,14 @@ export const useMongoAuthState = async (
                             );
                         }
                     }
-                    await Promise.all(tasks);
+                    await Promise.allSettled(tasks);
                 }
             }
         },
         saveCreds: () => {
             return writeData(creds, "creds");
-        }
+        },
+        clearAll,
+        clearKeys
     };
 };
