@@ -10,15 +10,16 @@ import { initAuthCreds } from "./auth-utils";
 
 const fileLock = new AsyncLock({ maxPending: Infinity });
 
+// Definisikan skema sesi dengan TTL 5 jam
 const sessionSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     value: mongoose.Schema.Types.Mixed,
-    createdAt: { type: Date, expires: "5h", default: Date.now } // TTL index 5 hour
+    createdAt: { type: Date, expires: "5h", default: Date.now } // TTL index 5 jam
 });
 
 const Session = mongoose.model("Session", sessionSchema);
 
-// Helper to serialize Buffer to a base64 string
+// Helper untuk serialisasi Buffer menjadi string base64
 const serialize = (data: any): any => {
     if (Buffer.isBuffer(data)) {
         return `Buffer:${data.toString("base64")}`;
@@ -34,7 +35,7 @@ const serialize = (data: any): any => {
     return data;
 };
 
-// Helper to deserialize base64 string to Buffer
+// Helper untuk deserialisasi string base64 menjadi Buffer
 const deserialize = (data: any): any => {
     if (typeof data === "string" && data.startsWith("Buffer:")) {
         return Buffer.from(data.slice(7), "base64");
@@ -64,13 +65,13 @@ export const useMongoAuthState = async (
 
     const writeData = async (data: any, file: string) => {
         const id = file.replace(/\//g, "__").replace(/:/g, "-");
-        await fileLock.acquire(id, () =>
-            Session.updateOne(
+        await fileLock.acquire(id, async () => {
+            await Session.updateOne(
                 { _id: id },
                 { value: serialize(data), createdAt: new Date() },
                 { upsert: true }
-            ).exec()
-        );
+            ).exec();
+        });
         cache.set(id, data);
     };
 
@@ -80,9 +81,7 @@ export const useMongoAuthState = async (
             return cache.get(id);
         }
         try {
-            const doc = await fileLock.acquire(id, () =>
-                Session.findById(id).exec()
-            );
+            const doc = await fileLock.acquire(id, () => Session.findById(id).exec());
             const data = doc ? deserialize(doc.value) : null;
             if (data) {
                 cache.set(id, data);
@@ -96,7 +95,9 @@ export const useMongoAuthState = async (
 
     const removeData = async (file: string) => {
         const id = file.replace(/\//g, "__").replace(/:/g, "-");
-        await fileLock.acquire(id, () => Session.deleteOne({ _id: id }).exec());
+        await fileLock.acquire(id, async () => {
+            await Session.deleteOne({ _id: id }).exec();
+        });
         cache.delete(id);
     };
 
