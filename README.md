@@ -2,7 +2,7 @@
 # Baileys Session (Mysql)
 > multi session baileys created on mysql databases
 
-[JOIN GROUP](https://chat.whatsapp.com/JbzMsezhCwUKdC6dnjwcIz)
+[JOIN GROUP](https://chat.whatsapp.com/BDI3NMjO7vW7RlOqgdxtmw)
 
 ## how to use ?
 > First, you need to add the session package in package.json. You can use the github or npm version
