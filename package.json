@@ -1,10 +1,10 @@
 {
     "name": "baileys-mysql",
-    "version": "1.0.3",
-    "author": "sanzydev",
+    "version": "1.0.4",
+    "author": "amiruldev",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "description": "mysql external session for baileys",
+    "description": "MySQL external session for Baileys",
     "homepage": "https://github.com/amiruldev20/baileys-session",
     "license": "MIT",
     "files": [
@@ -22,6 +22,7 @@
         "lint:fix": "eslint src --fix --ext .ts"
     },
     "repository": {
+        "type": "git",
         "url": "git+ssh://git@github.com/amiruldev/baileys-session.git"
     },
     "dependencies": {
@@ -53,5 +54,8 @@
     ],
     "bugs": {
         "url": "https://github.com/amiruldev/baileys-session/issues"
+    },
+    "engines": {
+        "node": ">=18.0.0"
     }
 }

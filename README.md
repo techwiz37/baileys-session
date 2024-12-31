@@ -14,7 +14,7 @@
 
 **version npm**
 ```json
-"session": "npm:baileys-mysql"
+"session": "npm:baileys-mysql@latest"
 ```
 
 ```json
