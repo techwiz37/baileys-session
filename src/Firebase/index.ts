@@ -70,24 +70,20 @@ export const useFireAuthState = async (
     };
 
     const clearAll = async () => {
-        const snapshot = await db
-            .collection(collectionName)
-            .where("session", "==", session)
-            .get();
+        const snapshot = await db.collection(collectionName).get();
         snapshot.forEach(doc => {
-            if (doc.id !== "creds") {
+            if (doc.id.startsWith(`${session}-`) && doc.id !== `${session}-creds`) {
                 doc.ref.delete();
             }
         });
     };
 
     const removeAll = async () => {
-        const snapshot = await db
-            .collection(collectionName)
-            .where("session", "==", session)
-            .get();
+        const snapshot = await db.collection(collectionName).get();
         snapshot.forEach(doc => {
-            doc.ref.delete();
+            if (doc.id.startsWith(`${session}-`)) {
+                doc.ref.delete();
+            }
         });
     };
 
