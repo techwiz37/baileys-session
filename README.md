@@ -1,5 +1,5 @@
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#table-of-contents)
-# Baileys Session (External)
+# Baileys Session (External) - WAITING UPDATE ❕❕
 multi session baileys created on external databases
 
 [JOIN GROUP](https://chat.whatsapp.com/BDI3NMjO7vW7RlOqgdxtmw)
